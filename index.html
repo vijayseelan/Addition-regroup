@@ -14,20 +14,25 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 10px;
         }
         h1 {
             text-align: center;
             color: #333;
+            font-size: 1.5em;
         }
         .auth-container {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            align-items: center; /* Centering items vertically */
+            height: 100vh; /* Full viewport height */
         }
         .auth-form {
             display: flex;
             flex-direction: column;
-            width: 300px;
+            align-items: center; /* Centering items horizontally */
+            width: 100%;
+            max-width: 300px;
             padding: 20px;
             background-color: white;
             border: 1px solid #ddd;
@@ -39,6 +44,12 @@
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            text-align: center; /* Centering the text in the input fields */
+            width: 100%;
+            box-sizing: border-box; /* Ensuring padding and border are included in the width */
+        }
+        .auth-form input::placeholder {
+            text-align: center; /* Centering the placeholder text */
         }
         .auth-form button {
             background-color: #4CAF50;
@@ -342,7 +353,7 @@
         }
 
         const additionProblems = [
-           { tens1: 2, ones1: 6, tens2: 3, ones2: 8 },
+            { tens1: 2, ones1: 6, tens2: 3, ones2: 8 },
     { tens1: 3, ones1: 7, tens2: 4, ones2: 5 },
     { tens1: 1, ones1: 5, tens2: 2, ones2: 8 },
     { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
@@ -462,7 +473,7 @@
 </head>
 <body>
     <div id="login-container" class="container">
-        <h1>Login / Sign Up</h1>
+        <h1>எடுத்துச் சென்று சேர்த்தல்</h1>
         <div class="auth-container">
             <div class="auth-form">
                 <input type="email" id="email" placeholder="Email">
