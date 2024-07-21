@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Sign Up and Main Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .auth-form input, .auth-form button {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .auth-form button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .auth-form button:hover {
+            background-color: #45a049;
+        }
+        .auth-prompt {
+            text-align: center;
+            margin-top: 10px;
+            color: red;
+        }
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .problem {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .problem-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .column-header {
+            text-align: center;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .carry-over {
+            font-size: 0.8em;
+            text-align: center;
+        }
+        .divider {
+            border-top: 2px solid #333;
+            margin: 10px 0;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .feedback {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .correct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpuUUpwt0TPqnOf69Z4DEGzVGZK8nR8-c",
+            authDomain: "addition-regrouping.firebaseapp.com",
+            databaseURL: "https://addition-regrouping-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "addition-regrouping",
+            storageBucket: "addition-regrouping.appspot.com",
+            messagingSenderId: "788024336122",
+            appId: "1:788024336122:web:9717762ad6b6c01cc6b343",
+            measurementId: "G-Z7NMKRY7ZD"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        function signUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log('User signed up');
+                    document.getElementById('auth-prompt').textContent = 'Successful signup!';
+                    document.getElementById('auth-prompt').style.color = 'green';
+                })
+                .catch((error) => {
+                    console.error(error.message);
+                    document.getElementById('auth-prompt').textContent = 'Signup failed: ' + error.message;
+                });
+        }
+
+        function logIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log('User logged in');
+                    document.getElementById('auth-prompt').textContent = 'Successful login!';
+                    document.getElementById('auth-prompt').style.color = 'green';
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('main-container').style.display = 'block';
+                    retrieveProgress(userCredential.user.uid);
+                })
+                .catch((error) => {
+                    console.error(error.message);
+                    document.getElementById('auth-prompt').textContent = 'Login failed: ' + error.message;
+                });
+        }
+
+        function logOut() {
+            firebase.auth().signOut().then(() => {
+                console.log('User logged out');
+                document.getElementById('auth-prompt').textContent = 'Logged out successfully';
+                document.getElementById('auth-prompt').style.color = 'green';
+                document.getElementById('login-container').style.display = 'block';
+                document.getElementById('main-container').style.display = 'none';
+            }).catch((error) => {
+                console.error(error.message);
+                document.getElementById('auth-prompt').textContent = 'Logout failed: ' + error.message;
+            });
+        }
+
+        function forgotPassword() {
+            const email = document.getElementById('email').value;
+            firebase.auth().sendPasswordResetEmail(email)
+                .then(() => {
+                    console.log('Password reset email sent');
+                    document.getElementById('auth-prompt').textContent = 'Password reset email sent';
+                    document.getElementById('auth-prompt').style.color = 'green';
+                })
+                .catch((error) => {
+                    console.error(error.message);
+                    document.getElementById('auth-prompt').textContent = 'Password reset failed: ' + error.message;
+                });
+        }
+
+        function saveProgress(uid, progress) {
+            firebase.database().ref('users/' + uid + '/progress').set(progress)
+                .then(() => {
+                    console.log('Progress saved');
+                })
+                .catch((error) => {
+                    console.error(error.message);
+                });
+        }
+
+        function retrieveProgress(uid) {
+            firebase.database().ref('users/' + uid + '/progress').get()
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        console.log('Progress retrieved', snapshot.val());
+                        updateUIWithProgress(snapshot.val());
+                    } else {
+                        console.log('No progress data available');
+                    }
+                })
+                .catch((error) => {
+                    console.error(error.message);
+                });
+        }
+
+        function updateUIWithProgress(progress) {
+            if (progress && Array.isArray(progress)) {
+                console.log('Updating UI with progress:', progress);
+                progress.forEach((item) => {
+                    const { problemIndex, userTens, userOnes } = item;
+                    const problemElement = document.getElementById(`problem-${problemIndex}`);
+                    if (problemElement) {
+                        const inputs = problemElement.querySelectorAll('input');
+                        inputs[5].value = userTens;
+                        inputs[6].value = userOnes;
+                        checkAnswer(problemIndex, false); // Check answer without saving progress again
+                    }
+                });
+            }
+        }
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                console.log('User is signed in');
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('main-container').style.display = 'block';
+                retrieveProgress(user.uid);
+            } else {
+                console.log('No user is signed in');
+                document.getElementById('login-container').style.display = 'block';
+                document.getElementById('main-container').style.display = 'none';
+            }
+        });
+
+        function createProblemHTML(problem, index) {
+            return `
+                <div class="problem" id="problem-${index}">
+                    <div class="problem-row">
+                        <div class="column-header">பத்துகள்</div>
+                        <div class="column-header">ஒன்றுகள்</div>
+                    </div>
+                    <div class="problem-row">
+                        <div>
+                            <div class="carry-over">
+                                <input type="text" maxlength="1" placeholder=>
+                            </div>
+                            <input type="text" value="${problem.tens1}" readonly>
+                        </div>
+                        <input type="text" value="${problem.ones1}" readonly>
+                    </div>
+                    <div class="problem-row">
+                        <input type="text" value="${problem.tens2}" readonly>
+                        <input type="text" value="${problem.ones2}" readonly>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="problem-row">
+                        <input type="text" placeholder="பத்துகள்">
+                        <input type="text" placeholder="ஒன்றுகள்">
+                    </div>
+                    <button onclick="checkAnswer(${index})">சரிபார்க்கவும்</button>
+                    <div class="feedback" id="feedback-${index}"></div>
+                </div>
+            `;
+        }
+
+        function renderProblems() {
+            const container = document.getElementById('problemContainer');
+            if (!container) {
+                console.error("Element with ID 'problemContainer' not found");
+                return;
+            }
+            additionProblems.forEach((problem, index) => {
+                container.innerHTML += createProblemHTML(problem, index);
+            });
+        }
+
+        function checkAnswer(index, saveProgressFlag = true) {
+            const problem = additionProblems[index];
+            const problemElement = document.getElementById(`problem-${index}`);
+            const inputs = problemElement.querySelectorAll('input');
+
+            // Input fields: [carry-over, tens1, ones1, tens2, ones2, userTens, userOnes]
+            const userTens = parseInt(inputs[5].value) || 0;
+            const userOnes = parseInt(inputs[6].value) || 0;
+
+            const correctSum = (problem.tens1 * 10 + problem.ones1) + (problem.tens2 * 10 + problem.ones2);
+            const userSum = userTens * 10 + userOnes;
+
+            const feedbackElement = document.getElementById(`feedback-${index}`);
+            if (correctSum === userSum) {
+                feedbackElement.textContent = 'அருமை! சரியான விடை.';
+                feedbackElement.className = 'feedback correct';
+            } else {
+                feedbackElement.textContent = 'மீண்டும் முயற்சி செய்யவும். எடுத்துச் சென்று சேர்த்தலைக் கவனியுங்கள்.';
+                feedbackElement.className = 'feedback incorrect';
+            }
+
+            if (saveProgressFlag) {
+                const uid = firebase.auth().currentUser.uid;
+                saveProgressToDatabase(uid, index, userTens, userOnes);
+            }
+        }
+
+        function saveProgressToDatabase(uid, problemIndex, userTens, userOnes) {
+            const progressRef = firebase.database().ref('users/' + uid + '/progress');
+            progressRef.once('value')
+                .then((snapshot) => {
+                    let progress = snapshot.val() || [];
+                    const existingIndex = progress.findIndex(p => p.problemIndex === problemIndex);
+                    if (existingIndex !== -1) {
+                        progress[existingIndex] = { problemIndex, userTens, userOnes };
+                    } else {
+                        progress.push({ problemIndex, userTens, userOnes });
+                    }
+                    progressRef.set(progress)
+                        .then(() => {
+                            console.log('Progress saved');
+                        })
+                        .catch((error) => {
+                            console.error(error.message);
+                        });
+                });
+        }
+
+        const additionProblems = [
+            { tens1: 2, ones1: 6, tens2: 3, ones2: 8 },
+    { tens1: 3, ones1: 7, tens2: 4, ones2: 5 },
+    { tens1: 1, ones1: 5, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
+    { tens1: 3, ones1: 3, tens2: 4, ones2: 8 },
+    { tens1: 1, ones1: 2, tens2: 5, ones2: 9 },
+    { tens1: 2, ones1: 1, tens2: 6, ones2: 9 },
+    { tens1: 3, ones1: 0, tens2: 4, ones2: 9 },
+    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
+    { tens1: 2, ones1: 8, tens2: 4, ones2: 3 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 6 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 4, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 5, ones2: 9 },
+    { tens1: 1, ones1: 9, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 8, tens2: 3, ones2: 7 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 6 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 4, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 5, ones2: 9 },
+    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
+    { tens1: 2, ones1: 8, tens2: 4, ones2: 3 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
+    { tens1: 3, ones1: 3, tens2: 0, ones2: 8 },
+    { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
+    { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
+    { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
+    { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
+    { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
+    { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
+    { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
+    { tens1: 3, ones1: 2, tens2: 0, ones2: 9 },
+    { tens1: 2, ones1: 7, tens2: 2, ones2: 4 },
+    { tens1: 3, ones1: 6, tens2: 1, ones2: 5 },
+    { tens1: 1, ones1: 5, tens2: 5, ones2: 6 },
+    { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
+    { tens1: 3, ones1: 3, tens2: 1, ones2: 8 },
+    { tens1: 1, ones1: 2, tens2: 2, ones2: 9 },
+    { tens1: 2, ones1: 4, tens2: 1, ones2: 8 },
+    { tens1: 3, ones1: 4, tens2: 0, ones2: 9 },
+    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
+    { tens1: 3, ones1: 8, tens2: 0, ones2: 9 },
+    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
+    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
+    { tens1: 3, ones1: 6, tens2: 0, ones2: 7 },
+    { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
+    { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
+    { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
+    { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
+    { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
+    { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
+    { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
+    { tens1: 3, ones1: 2, tens2: 0, ones2: 9 },
+    { tens1: 2, ones1: 7, tens2: 2, ones2: 4 },
+    { tens1: 3, ones1: 6, tens2: 1, ones2: 5 },
+    { tens1: 1, ones1: 5, tens2: 5, ones2: 6 },
+    { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
+    { tens1: 3, ones1: 3, tens2: 1, ones2: 8 },
+    { tens1: 1, ones1: 2, tens2: 2, ones2: 9 },
+    { tens1: 2, ones1: 3, tens2: 1, ones2: 9 },
+    { tens1: 3, ones1: 5, tens2: 0, ones2: 8 },
+    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
+    { tens1: 3, ones1: 9, tens2: 0, ones2: 8 },
+    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
+    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
+    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
+    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
+    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
+    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
+    { tens1: 3, ones1: 5, tens2: 0, ones2: 6 },
+    { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
+    { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
+    { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
+    { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
+    { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
+    { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
+    { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
+    { tens1: 3, ones1: 2, tens2: 0, ones2: 9 }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.createElement('div');
+            container.id = 'problemContainer';
+            container.className = 'problem-grid';
+            document.getElementById('main-container').appendChild(container);
+            renderProblems();
+        });
+    </script>
+</head>
+<body>
+    <div id="login-container" class="container">
+        <h1>Login / Sign Up</h1>
+        <div class="auth-container">
+            <div class="auth-form">
+                <input type="email" id="email" placeholder="Email">
+                <input type="password" id="password" placeholder="Password">
+                <button onclick="logIn()">Log In</button>
+                <button onclick="signUp()">Sign Up</button>
+                <button onclick="forgotPassword()">Forgot Password</button>
+                <div id="auth-prompt" class="auth-prompt"></div>
+            </div>
+        </div>
+    </div>
+    <div id="main-container" class="container" style="display: none;">
+        <h1>எடுத்துச் சென்று சேர்த்தல்</h1>
+        <button onclick="logOut()">Log Out</button>
+        <div id="auth-prompt" class="auth-prompt"></div>
+        <div id="problemContainer" class="problem-grid"></div>
+    </div>
+</body>
+</html>
