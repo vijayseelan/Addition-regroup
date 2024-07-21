@@ -14,10 +14,12 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 10px;
         }
         h1 {
             text-align: center;
             color: #333;
+            font-size: 1.5em;
         }
         .auth-container {
             display: flex;
@@ -27,7 +29,8 @@
         .auth-form {
             display: flex;
             flex-direction: column;
-            width: 300px;
+            width: 100%;
+            max-width: 300px;
             padding: 20px;
             background-color: white;
             border: 1px solid #ddd;
@@ -224,13 +227,14 @@
             if (progress && Array.isArray(progress)) {
                 console.log('Updating UI with progress:', progress);
                 progress.forEach((item) => {
-                    const { problemIndex, userTens, userOnes } = item;
+                    const { problemIndex, userTens, userOnes, carryOver } = item;
                     const problemElement = document.getElementById(`problem-${problemIndex}`);
                     if (problemElement) {
                         const inputs = problemElement.querySelectorAll('input');
+                        inputs[0].value = carryOver || '';
                         inputs[5].value = userTens;
                         inputs[6].value = userOnes;
-                        checkAnswer(problemIndex, false); // Check answer without saving progress again
+                        checkAnswer(problemIndex, false);
                     }
                 });
             }
@@ -297,14 +301,15 @@
             const inputs = problemElement.querySelectorAll('input');
 
             // Input fields: [carry-over, tens1, ones1, tens2, ones2, userTens, userOnes]
+            const carryOver = parseInt(inputs[0].value) || 0;
             const userTens = parseInt(inputs[5].value) || 0;
             const userOnes = parseInt(inputs[6].value) || 0;
 
-            const correctSum = (problem.tens1 * 10 + problem.ones1) + (problem.tens2 * 10 + problem.ones2);
-            const userSum = userTens * 10 + userOnes;
+            const correctSumTens = Math.floor((problem.tens1 * 10 + problem.ones1 + problem.tens2 * 10 + problem.ones2) / 10);
+            const correctSumOnes = (problem.tens1 * 10 + problem.ones1 + problem.tens2 * 10 + problem.ones2) % 10;
 
             const feedbackElement = document.getElementById(`feedback-${index}`);
-            if (correctSum === userSum) {
+            if (correctSumTens === userTens && correctSumOnes === userOnes) {
                 feedbackElement.textContent = 'அருமை! சரியான விடை.';
                 feedbackElement.className = 'feedback correct';
             } else {
@@ -314,20 +319,20 @@
 
             if (saveProgressFlag) {
                 const uid = firebase.auth().currentUser.uid;
-                saveProgressToDatabase(uid, index, userTens, userOnes);
+                saveProgressToDatabase(uid, index, userTens, userOnes, carryOver);
             }
         }
 
-        function saveProgressToDatabase(uid, problemIndex, userTens, userOnes) {
+        function saveProgressToDatabase(uid, problemIndex, userTens, userOnes, carryOver) {
             const progressRef = firebase.database().ref('users/' + uid + '/progress');
             progressRef.once('value')
                 .then((snapshot) => {
                     let progress = snapshot.val() || [];
                     const existingIndex = progress.findIndex(p => p.problemIndex === problemIndex);
                     if (existingIndex !== -1) {
-                        progress[existingIndex] = { problemIndex, userTens, userOnes };
+                        progress[existingIndex] = { problemIndex, userTens, userOnes, carryOver };
                     } else {
-                        progress.push({ problemIndex, userTens, userOnes });
+                        progress.push({ problemIndex, userTens, userOnes, carryOver });
                     }
                     progressRef.set(progress)
                         .then(() => {
@@ -341,112 +346,46 @@
 
         const additionProblems = [
             { tens1: 2, ones1: 6, tens2: 3, ones2: 8 },
-    { tens1: 3, ones1: 7, tens2: 4, ones2: 5 },
-    { tens1: 1, ones1: 5, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
-    { tens1: 3, ones1: 3, tens2: 4, ones2: 8 },
-    { tens1: 1, ones1: 2, tens2: 5, ones2: 9 },
-    { tens1: 2, ones1: 1, tens2: 6, ones2: 9 },
-    { tens1: 3, ones1: 0, tens2: 4, ones2: 9 },
-    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
-    { tens1: 2, ones1: 8, tens2: 4, ones2: 3 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 6 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 4, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 5, ones2: 9 },
-    { tens1: 1, ones1: 9, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 8, tens2: 3, ones2: 7 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 6 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 4, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 5, ones2: 9 },
-    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
-    { tens1: 2, ones1: 8, tens2: 4, ones2: 3 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
-    { tens1: 3, ones1: 3, tens2: 0, ones2: 8 },
-    { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
-    { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
-    { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
-    { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
-    { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
-    { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
-    { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
-    { tens1: 3, ones1: 2, tens2: 0, ones2: 9 },
-    { tens1: 2, ones1: 7, tens2: 2, ones2: 4 },
-    { tens1: 3, ones1: 6, tens2: 1, ones2: 5 },
-    { tens1: 1, ones1: 5, tens2: 5, ones2: 6 },
-    { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
-    { tens1: 3, ones1: 3, tens2: 1, ones2: 8 },
-    { tens1: 1, ones1: 2, tens2: 2, ones2: 9 },
-    { tens1: 2, ones1: 4, tens2: 1, ones2: 8 },
-    { tens1: 3, ones1: 4, tens2: 0, ones2: 9 },
-    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
-    { tens1: 3, ones1: 8, tens2: 0, ones2: 9 },
-    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
-    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
-    { tens1: 3, ones1: 6, tens2: 0, ones2: 7 },
-    { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
-    { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
-    { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
-    { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
-    { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
-    { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
-    { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
-    { tens1: 3, ones1: 2, tens2: 0, ones2: 9 },
-    { tens1: 2, ones1: 7, tens2: 2, ones2: 4 },
-    { tens1: 3, ones1: 6, tens2: 1, ones2: 5 },
-    { tens1: 1, ones1: 5, tens2: 5, ones2: 6 },
-    { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
-    { tens1: 3, ones1: 3, tens2: 1, ones2: 8 },
-    { tens1: 1, ones1: 2, tens2: 2, ones2: 9 },
-    { tens1: 2, ones1: 3, tens2: 1, ones2: 9 },
-    { tens1: 3, ones1: 5, tens2: 0, ones2: 8 },
-    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
-    { tens1: 3, ones1: 9, tens2: 0, ones2: 8 },
-    { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
-    { tens1: 2, ones1: 8, tens2: 2, ones2: 3 },
-    { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
-    { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
-    { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
-    { tens1: 3, ones1: 4, tens2: 1, ones2: 7 },
-    { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
-    { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
-    { tens1: 3, ones1: 5, tens2: 0, ones2: 6 },
-    { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
-    { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
-    { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
-    { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
-    { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
-    { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
-    { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
-    { tens1: 3, ones1: 2, tens2: 0, ones2: 9 }
+            { tens1: 3, ones1: 7, tens2: 4, ones2: 5 },
+            { tens1: 1, ones1: 5, tens2: 2, ones2: 8 },
+            { tens1: 2, ones1: 4, tens2: 3, ones2: 7 },
+            { tens1: 3, ones1: 3, tens2: 4, ones2: 8 },
+            { tens1: 1, ones1: 2, tens2: 5, ones2: 9 },
+            { tens1: 2, ones1: 1, tens2: 6, ones2: 9 },
+            { tens1: 3, ones1: 0, tens2: 4, ones2: 9 },
+            { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
+            { tens1: 2, ones1: 8, tens2: 4, ones2: 3 },
+            { tens1: 3, ones1: 7, tens2: 1, ones2: 6 },
+            { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+            { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+            { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
+            { tens1: 1, ones1: 3, tens2: 4, ones2: 8 },
+            { tens1: 2, ones1: 2, tens2: 5, ones2: 9 },
+            { tens1: 1, ones1: 9, tens2: 2, ones2: 8 },
+            { tens1: 2, ones1: 8, tens2: 3, ones2: 7 },
+            { tens1: 3, ones1: 7, tens2: 1, ones2: 6 },
+            { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+            { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+            { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
+            { tens1: 1, ones1: 3, tens2: 4, ones2: 8 },
+            { tens1: 2, ones1: 2, tens2: 5, ones2: 9 },
+            { tens1: 1, ones1: 9, tens2: 3, ones2: 2 },
+            { tens1: 2, ones1: 8, tens2: 4, ones2: 3 },
+            { tens1: 3, ones1: 7, tens2: 1, ones2: 4 },
+            { tens1: 1, ones1: 6, tens2: 5, ones2: 5 },
+            { tens1: 2, ones1: 5, tens2: 3, ones2: 6 },
+            { tens1: 3, ones1: 4, tens2: 2, ones2: 7 },
+            { tens1: 1, ones1: 3, tens2: 2, ones2: 8 },
+            { tens1: 2, ones1: 2, tens2: 1, ones2: 9 },
+            { tens1: 3, ones1: 3, tens2: 0, ones2: 8 },
+            { tens1: 2, ones1: 9, tens2: 2, ones2: 2 },
+            { tens1: 3, ones1: 8, tens2: 1, ones2: 3 },
+            { tens1: 1, ones1: 7, tens2: 5, ones2: 4 },
+            { tens1: 2, ones1: 6, tens2: 3, ones2: 5 },
+            { tens1: 3, ones1: 5, tens2: 1, ones2: 6 },
+            { tens1: 1, ones1: 4, tens2: 2, ones2: 7 },
+            { tens1: 2, ones1: 3, tens2: 1, ones2: 8 },
+            { tens1: 3, ones1: 2, tens2: 0, ones2: 9 }
         ];
 
         document.addEventListener('DOMContentLoaded', function() {
